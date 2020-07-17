@@ -1,0 +1,72 @@
+// Includes do Compilador
+#include <p18f4550.h>
+#include <stdlib.h>
+// Includes do Projeto
+#include "Config.h"
+#include "displayLCD.h"
+#define Botao_B1 PORTEbits.RE0
+#define Botao_B2 PORTEbits.RE1
+#define Botao_B3 PORTEbits.RE2
+// Variáveis Gloabais
+unsigned int valor_AN0 = 00;
+const unsigned char Texto_0[] = "Conversor ADC ";
+const unsigned char Texto_1[] = "AN0 = ";
+
+// Esta função é usada para gerar um delay programável,cuja base de tempo é de
+// 1 ms. Assim, se você colocar delay_ms(500), ele esperará um tempo de 500 ms
+// para seguir o programa.
+void delay_ms(int delaytime) // Gera delay para o novo compilador
+{
+    while (--delaytime)
+    {
+        __delay_ms(1);
+    }
+} 
+
+void main()
+{
+    // Configura a entrada AN0 e todas as outras do byte RA para digital
+    // Ver tabela da página 260 do Manual do PIC 18F4550 para outras configurações
+    ADCON1 = 0x0E; // Define como entrada analógica o pino 2 (AN0)
+    // ADC Setup
+    // Ver tabela da página 261 do Manual do PIC 18F4550
+    ADCON2bits.ADFM = 1; //Ajusta justificação para direita
+    ADCON1bits.VCFG0 = 0; // Referência em VDD
+    ADCON1bits.VCFG1 = 0; // Referência em VSS
+    ADCON2bits.ADCS0 = 0; //Seleciona divisor FOSC/64
+    ADCON2bits.ADCS1 = 1;
+    ADCON2bits.ADCS2 = 1;
+    ADCON2bits.ACQT0 = 1; //Seleciona tempo de aquisição (2,66 us)
+    ADCON2bits.ACQT1 = 0;
+    ADCON2bits.ACQT2 = 0;
+    ADCON0bits.ADON = 1; //Ativar módulo de ADC
+    ADCON0bits.CHS0 = 0; //Seleciona AN0 para ligar no S/H
+    ADCON0bits.CHS1 = 0;
+    ADCON0bits.CHS2 = 0;
+    ADCON0bits.CHS3 = 0;
+    
+    //Inicializa display e faz saudação
+    ConfiguraLCD();
+    delay_ms(20);
+    PosicaoCursorLCD(1,1);
+    EscreveFraseRamLCD(Texto_0);
+    PosicaoCursorLCD(2,1);
+    EscreveFraseRamLCD(Texto_1);
+    DesligaCursor();
+    delay_ms(3000);
+    while(1)
+    {
+        ADCON0bits.GO = 1; // Ativa leitura do canal 0
+       
+        while(ADCON0bits.GO_DONE == 1) {}
+        {
+            valor_AN0 = (ADRESH<<8) + ADRESL; // Monta uma word
+        }
+        
+        PosicaoCursorLCD(2,1);
+        EscreveFraseRamLCD(Texto_1);
+        PosicaoCursorLCD(2,6);
+        EscreveInteiroLCD(valor_AN0);
+        delay_ms(100);
+    }
+}
